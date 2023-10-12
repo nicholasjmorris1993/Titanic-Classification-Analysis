@@ -17,6 +17,7 @@ from xgboost.sklearn import XGBClassifier
 from sklearn.metrics import confusion_matrix, accuracy_score
 from scipy.stats import kstest
 from itertools import combinations
+import pandas_datareader as pdr
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.offline import plot
@@ -546,6 +547,8 @@ class Classification:
     def dump(self):
         # save the machine learning pipeline and data
         # fit() or validate() has to be called for the pipeline and indicators to exist
+        with open(f"{self.path}{path_sep}{self.name}{path_sep}dump{path_sep}labeler", "wb") as f:
+            pickle.dump(self.labeler, f)
         with open(f"{self.path}{path_sep}{self.name}{path_sep}dump{path_sep}names1", "wb") as f:
             pickle.dump(self.names1, f)
         with open(f"{self.path}{path_sep}{self.name}{path_sep}dump{path_sep}datetime", "wb") as f:
@@ -595,6 +598,8 @@ class Classification:
     def load(self):
         # load the machine learning pipeline and data
         # fit() or validate() had to have been called for the pipeline and indicators to exist
+        with open(f"{self.path}{path_sep}{self.name}{path_sep}dump{path_sep}labeler", "rb") as f:
+            self.labeler = pickle.load(f)
         with open(f"{self.path}{path_sep}{self.name}{path_sep}dump{path_sep}names1", "rb") as f:
             self.names1 = pickle.load(f)
         with open(f"{self.path}{path_sep}{self.name}{path_sep}dump{path_sep}datetime", "rb") as f:
