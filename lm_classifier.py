@@ -15,7 +15,7 @@ from sklearn.feature_selection import VarianceThreshold
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder, MinMaxScaler, KBinsDiscretizer, PolynomialFeatures
 from xgboost.sklearn import XGBClassifier
 from sklearn.linear_model import LogisticRegressionCV
-from sklearn.metrics import confusion_matrix, accuracy_score
+from sklearn.metrics import confusion_matrix, accuracy_score, f1_score
 from scipy.stats import kstest
 from itertools import combinations
 import pandas_datareader as pdr
@@ -340,22 +340,31 @@ class Classification:
         self.run_time(start, end)
     
     def performance(self, X, y):
-        # compute Accuracy
+        # compute Accuracy and F1
         predictions = self.lasso.predict(X)
         y = y.iloc[:,0].to_numpy()
         self.bootstrap(y, predictions)
         df = pd.DataFrame({
             "Accuracy": self.accuracy,
+            "F1": self.f1,
         })
         self.accuracy = np.mean(self.accuracy)
+        self.f1 = np.mean(self.f1)
 
-        # plot Accuracy
+        # plot Accuracy and F1
         if self.plots:
             self.histogram(
                 df,
                 x="Accuracy",
                 bins=20,
                 title="Histogram For Accuracy",
+                font_size=16,
+            )
+            self.histogram(
+                df,
+                x="F1",
+                bins=20,
+                title="Histogram For F1",
                 font_size=16,
             )
 
@@ -480,13 +489,18 @@ class Classification:
         })
 
         self.accuracy = list()
+        self.f1 = list()
         np.random.seed(0)
         seeds = np.random.random_integers(low=0, high=1e6, size=1000)
 
-        # randomly sample Accuracy scores
+        # randomly sample Accuracy and F1 scores
         for i in range(1000):
             sample = df.sample(frac=0.5, replace=True, random_state=seeds[i])
             self.accuracy.append(accuracy_score(
+                y_true=sample["Actual"].tolist(),
+                y_pred=sample["Predict"].tolist(),
+            ))
+            self.f1.append(f1_score(
                 y_true=sample["Actual"].tolist(),
                 y_pred=sample["Predict"].tolist(),
             ))
@@ -601,9 +615,11 @@ class Classification:
             self.drift.to_csv(f"{self.path}{path_sep}{self.name}{path_sep}dump{path_sep}drift.csv", index=False)
         except:
             pass
-        try:  # validate() has to be called for accuracy, confusion, and in_control to exist
+        try:  # validate() has to be called for accuracy, f1, confusion, and in_control to exist
             with open(f"{self.path}{path_sep}{self.name}{path_sep}dump{path_sep}accuracy", "wb") as f:
                 pickle.dump(self.accuracy, f)
+            with open(f"{self.path}{path_sep}{self.name}{path_sep}dump{path_sep}f1", "wb") as f:
+                pickle.dump(self.f1, f)
             with open(f"{self.path}{path_sep}{self.name}{path_sep}dump{path_sep}in_control", "wb") as f:
                 pickle.dump(self.in_control, f)
             self.confusion.to_csv(f"{self.path}{path_sep}{self.name}{path_sep}dump{path_sep}confusion.csv")
@@ -654,9 +670,11 @@ class Classification:
             self.drift = pd.read_csv(f"{self.path}{path_sep}{self.name}{path_sep}dump{path_sep}drift.csv")
         except:
             pass
-        try:  # validate() had to have been called for accuracy, confusion, and in_control to exist
+        try:  # validate() had to have been called for accuracy, f1, confusion, and in_control to exist
             with open(f"{self.path}{path_sep}{self.name}{path_sep}dump{path_sep}accuracy", "rb") as f:
                 self.accuracy = pickle.load(f)
+            with open(f"{self.path}{path_sep}{self.name}{path_sep}dump{path_sep}f1", "rb") as f:
+                self.f1 = pickle.load(f)
             with open(f"{self.path}{path_sep}{self.name}{path_sep}dump{path_sep}in_control", "rb") as f:
                 self.in_control = pickle.load(f)
             self.confusion = pd.read_csv(f"{self.path}{path_sep}{self.name}{path_sep}dump{path_sep}confusion.csv")
